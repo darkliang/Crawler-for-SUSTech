@@ -1,2 +1,2 @@
-# Crawler-for-SUSTech
+# Scripts-for-SUSTech
 Some scripts applied to SUSTech.
