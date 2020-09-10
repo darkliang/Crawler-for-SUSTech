@@ -3,9 +3,8 @@ import re
 import time
 from retry import retry
 
-delay = 0  # 抢课失败后随机延迟，以毫秒为单位，若不需要则设为0
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                         ' AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36'}
+delay = 10  # 抢课失败后随机延迟，以毫秒为单位，若不需要则设为0
+
 
 def rush_all(s, data):
     count = 1
@@ -21,7 +20,18 @@ def rush_all(s, data):
 
 def rush(s, p):
     print('正在抢 %s' % p[0])
-    r = s.get("http://jwxt.sustech.edu.cn/jsxsd/xsxkkc/fawxkOper?jx0404id=%s&xkzy=&trjf=" % p[1], headers=headers)
+    if p[2] == 'bxqjh':
+        r = s.get("http://jwxt.sustech.edu.cn/jsxsd/xsxkkc/bxqjhxkOper?jx0404id=%s&xkzy=&trjf=" % p[1])
+    elif p[2] == 'zynknj':
+        r = s.get("http://jwxt.sustech.edu.cn/jsxsd/xsxkkc/knjxkOper?jx0404id=%s&xkzy=&trjf=" % p[1])
+    elif p[2] == 'kzy':
+        r = s.get("http://jwxt.sustech.edu.cn/jsxsd/xsxkkc/fawxkOper?jx0404id=%s&xkzy=&trjf=" % p[1])
+    elif p[2] == 'gxk':
+        r = s.get("http://jwxt.sustech.edu.cn/jsxsd/xsxkkc/ggxxkxkOper?jx0404id=%s&xkzy=&trjf=" % p[1])
+    else:
+        print("课程 " + p[0] + " 类别填写错误")
+
+        return False
     result = str(r.content, 'utf-8')
     if result.find("true", 0, len(result)) >= 1:
         print("抢到 " + p[0] + " 啦")
@@ -29,8 +39,8 @@ def rush(s, p):
     if delay <= 0:
         print(result + "继续加油!")
     else:
-        print(result + "继续加油!等待%fs" % (delay/1000))
-        time.sleep(delay/1000)
+        print(result + "继续加油!等待%fms" % delay)
+        time.sleep(delay / 1000)
     return False
 
 
@@ -47,12 +57,16 @@ def main(data):
                   'http://jwxt.sustech.edu.cn/jsxsd/', data=data[i]['data'])
 
         print("用户" + data[i]['data']['username'] + " CAS验证成功")
-        r = s[i].get('http://jwxt.sustech.edu.cn/jsxsd/xsxk/xklc_list?Ves632DSdyV=NEW_XSD_PYGL')
-        print("教务系统启动")
-        key = re.findall('href="(.+)" target="blank">进入选课', r.text)
-        k = key[0]
-        s[i].get('http://jwxt.sustech.edu.cn' + k)
+        s[i].get('http://jwxt.sustech.edu.cn/jsxsd/xsxk/xklc_list?Ves632DSdyV=NEW_XSD_PYGL')
+        response = s[i].get('http://jwxt.sustech.edu.cn/jsxsd/xsxk/xklc_list?Ves632DSdyV=NEW_XSD_PYGL')
 
+        print("教务系统启动")
+        key = re.findall('href="(.+)" target="blank">进入选课', response.text)
+        k = key[0]
+        if k:
+            s[i].get('http://jwxt.sustech.edu.cn' + k)
+        else:
+            print("未找到选课入口")
     print("开始抢课")
 
     rush_all(s, data)
@@ -61,18 +75,12 @@ def main(data):
 
 
 if __name__ == '__main__':
+    # bxqjh-计划选课,zynknj-专业内跨年级选课,kzy-跨专业选课,gxk-公选课
     data = [{
-        'data': {
+        'data': {  
             'username': '',
             'password': ''
         },
-        'classes': [("Java", '201920201000744')]
-    }, {
-        'data': {   # 猴哥
-            'username': '',
-            'password': ''
-        },
-        'classes': [("PE", '201920201001430')]
+        'classes': [("计网", "202020211001318", "kzy")]
     }]
     main(data)
-
